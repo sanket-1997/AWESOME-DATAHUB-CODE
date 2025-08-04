@@ -1,0 +1,49 @@
+dataContractSpecification: 1.1.0
+id: ''
+info:
+  title: BDH Data Contract for dcm_bdh_thoughtspot_dev_ts-dim_products
+  version: 2.0.0
+  description: SCD2
+  owner: BDH
+  status: active
+  contact:
+    name: John Doe (Data Product Owner)
+    email: abc@gmail.com
+servers:
+  databricks:
+    type: heck
+    host: hello
+    catalog: hi
+models:
+  dcm_bdh_thoughtspot_dev_ts-dim_products:
+    description: No description provided
+    type: view
+    fields:
+      product_id:
+        description: product_id
+        type: string
+        required: true
+        unique: true
+      product_name:
+        description: product_name
+        type: string
+        required: true
+        unique: true
+      category:
+        description: category
+        type: string
+        required: true
+        unique: false
+      brand:
+        description: brand
+        type: string
+        required: true
+        unique: false
+      price:
+        description: price
+        type: decimal
+        required: true
+        unique: false
+    primaryKey:
+    - product_id
+
