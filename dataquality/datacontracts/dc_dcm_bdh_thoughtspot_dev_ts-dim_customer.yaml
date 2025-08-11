@@ -3,27 +3,35 @@ id: ''
 info:
   title: BDH Data Contract for dcm_bdh_thoughtspot_dev_ts-dim_customer
   version: 2.0.0
-  description: SCD1
+  description: SCD2   # Can be SCD1 or SCD2
   owner: BDH
   status: active
   contact:
     name: John Doe (Data Product Owner)
     email: abc@gmail.com
+
 servers:
   databricks:
     type: heck
     host: hello
     catalog: hi
+
 models:
   dcm_bdh_thoughtspot_dev_ts-dim_customer:
-    description: No description provided
-    type: view
+    description: Customer dimension table
+    type: table
     fields:
+      customer_sk:                     # Surrogate key (added manually in metadata)
+        description: surrogate key
+        type: long
+        required: true
+        surrogateKey: true              # Custom flag for SK
       customer_id:
         description: customer id
         type: string
         required: true
         unique: true
+        businessKey: true               # Natural/business key
       first_name:
         description: first name
         type: string
@@ -40,7 +48,17 @@ models:
         description: city
         type: string
         required: true
+      effective_start_date:
+        description: record start date (for SCD2)
+        type: date
+      effective_end_date:
+        description: record end date (for SCD2)
+        type: date
+      is_active:
+        description: current active flag (for SCD2)
+        type: boolean
 
     primaryKey:
-    - customer_id
-
+      - customer_sk
+    businessKeys:
+      - customer_id

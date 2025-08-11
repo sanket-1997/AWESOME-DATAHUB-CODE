@@ -1,7 +1,7 @@
 import os
 from datacontract.data_contract import DataContract
 
-    # Run lint check
+# Run lint check
 def check_datacontract(out_path):
     try:
         result = DataContract(out_path).lint()
