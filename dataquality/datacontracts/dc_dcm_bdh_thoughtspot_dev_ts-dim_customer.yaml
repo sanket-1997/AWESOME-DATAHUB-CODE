@@ -21,17 +21,11 @@ models:
     description: Customer dimension table
     type: table
     fields:
-      customer_sk:                     # Surrogate key (added manually in metadata)
-        description: surrogate key
-        type: long
-        required: true
-        surrogateKey: true              # Custom flag for SK
       customer_id:
         description: customer id
         type: string
         required: true
-        unique: true
-        businessKey: true               # Natural/business key
+        unique: true             # Natural/business key
       first_name:
         description: first name
         type: string
@@ -48,6 +42,11 @@ models:
         description: city
         type: string
         required: true
+      customer_sk:                     # Surrogate key (added manually in metadata)
+        description: surrogate key
+        type: long
+        required: true
+        surrogateKey: true              # Custom flag for SK
       effective_start_date:
         description: record start date (for SCD2)
         type: date
@@ -59,6 +58,6 @@ models:
         type: boolean
 
     primaryKey:
-      - customer_sk
+      - customer_id
     businessKeys:
       - customer_id
