@@ -1,0 +1,24 @@
+{
+	"name": "LS_AzureSQL",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"server": "awesome.database.windows.net",
+			"database": "azuresql-awesome",
+			"encrypt": "mandatory",
+			"trustServerCertificate": false,
+			"authenticationType": "SQL",
+			"userName": "sanket",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "LS_AwesomeKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "AzureSQL-password"
+			}
+		}
+	}
+}

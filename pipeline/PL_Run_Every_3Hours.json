@@ -1,0 +1,99 @@
+{
+	"name": "PL_Run_Every_3Hours",
+	"properties": {
+		"activities": [
+			{
+				"name": "CheckPublicHoliday",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT COUNT(*) AS IsHoliday FROM HolidayCalendar WHERE HolidayDate = CAST(GETDATE() AS DATE);",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_PublicHoliday",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "DecisionMaker",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "CheckPublicHoliday",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('CheckPublicHoliday').output.value[0].IsHoliday,0)",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "SendMail",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"method": "POST",
+								"url": "https://prod-07.centralindia.logic.azure.com:443/workflows/400166d40e404cc48cce2c50f80699ba/triggers/When_a_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_a_HTTP_request_is_received%2Frun&sv=1.0&sig=ffrnXDGrX_jOb3qiOAyBlZKyWmbGTYntiT_3xa4Hq2Y",
+								"body": {
+									"value": "{\n    \"pipelineName\": \"@{pipeline().Pipeline}\",\n    \"runId\": \"@{pipeline().RunId}\",\n    \"time\": \"@{utcNow()}\"\n}",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Consumer_Orchestrator",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_Incremental_Load_Orchestrator",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true
+							}
+						}
+					]
+				}
+			}
+		],
+		"folder": {
+			"name": "Generic"
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-08-16T16:39:43Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

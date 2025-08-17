@@ -1,0 +1,124 @@
+{
+	"name": "PL_Incremental_Load_Orchestrator",
+	"properties": {
+		"activities": [
+			{
+				"name": "FetchTables",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT source, entityname, watermarkvalue From Metadata.Watermark WHERE source = 'consumer';",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_AzureMetadata",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach_Tables",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "ExtractTriggerTimestamp",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('FetchTables').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "ExecutePipeline_ProcessEntity",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_Process_Entity",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"entity": {
+										"value": "@item().entityname",
+										"type": "Expression"
+									},
+									"watermark": {
+										"value": "@item().watermarkvalue",
+										"type": "Expression"
+									},
+									"source": {
+										"value": "@item().source",
+										"type": "Expression"
+									},
+									"extract_timestamp": {
+										"value": "@{variables('ExtractTimeStampValue')}",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "ExtractTriggerTimestamp",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "FetchTables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ExtractTimeStampValue",
+					"value": {
+						"value": "@formatDateTime(convertTimeZone(pipeline().TriggerTime   , 'UTC', 'India Standard Time'), 'yyyyMMdd_HHmmss')\n",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"variables": {
+			"ExtractTimeStampValue": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Consumer"
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-08-16T03:34:19Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

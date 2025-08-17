@@ -1,0 +1,27 @@
+{
+	"name": "LS_SFTP",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "Sftp",
+		"typeProperties": {
+			"host": "127.0.0.1",
+			"port": "2222",
+			"skipHostKeyValidation": true,
+			"authenticationType": "Basic",
+			"userName": "sftpuser",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "LS_AwesomeKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "sftp-password"
+			}
+		},
+		"connectVia": {
+			"referenceName": "AwesomeSHIR",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

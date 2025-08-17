@@ -1,0 +1,43 @@
+{
+	"name": "DS_PublicHoliday",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_AzureSQL",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Common"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "HolidayID",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "HolidayDate",
+				"type": "date"
+			},
+			{
+				"name": "HolidayName",
+				"type": "nvarchar"
+			},
+			{
+				"name": "HolidayDay",
+				"type": "nvarchar"
+			},
+			{
+				"name": "HolidayYear",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "HolidayCalendar"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
