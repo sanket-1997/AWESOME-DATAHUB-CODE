@@ -1,0 +1,949 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-awesomeadf"
+		},
+		"LS_AzureDataLake_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'LS_AzureDataLake'"
+		},
+		"LS_AwesomeKeyVault_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://kv-awesomekeyvault.vault.azure.net/"
+		},
+		"LS_AzureDataLake_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://storageawesum.dfs.core.windows.net/"
+		},
+		"LS_AzureSQL_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "awesome.database.windows.net"
+		},
+		"LS_AzureSQL_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "azuresql-awesome"
+		},
+		"LS_AzureSQL_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "sanket"
+		},
+		"LS_SFTP_properties_typeProperties_host": {
+			"type": "string",
+			"defaultValue": "127.0.0.1"
+		},
+		"LS_SFTP_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "sftpuser"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_Incremental_Load_Orchestrator')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "FetchTables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "SELECT source, entityname, watermarkvalue From Metadata.Watermark WHERE source = 'consumer';",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_AzureMetadata",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach_Tables",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "ExtractTriggerTimestamp",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('FetchTables').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"activities": [
+								{
+									"name": "ExecutePipeline_ProcessEntity",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "PL_Process_Entity",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"entity": {
+												"value": "@item().entityname",
+												"type": "Expression"
+											},
+											"watermark": {
+												"value": "@item().watermarkvalue",
+												"type": "Expression"
+											},
+											"source": {
+												"value": "@item().source",
+												"type": "Expression"
+											},
+											"extract_timestamp": {
+												"value": "@{variables('ExtractTimeStampValue')}",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "ExtractTriggerTimestamp",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "FetchTables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "ExtractTimeStampValue",
+							"value": {
+								"value": "@formatDateTime(convertTimeZone(pipeline().TriggerTime   , 'UTC', 'India Standard Time'), 'yyyyMMdd_HHmmss')\n",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"ExtractTimeStampValue": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Consumer"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-08-16T03:34:19Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_AzureMetadata')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_Process_Entity')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_Process_Entity')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ListFiles",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_SFTP_CSV_METADATA",
+								"type": "DatasetReference",
+								"parameters": {
+									"directory": {
+										"value": "@concat('/files/', pipeline().parameters.source, '/', pipeline().parameters.entity)",
+										"type": "Expression"
+									}
+								}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "SftpReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false,
+								"disableChunking": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "Filter_New_Files",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "ListFiles",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('ListFiles').output.childItems",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@greater(\n    formatDateTime(\n        concat(\n            substring(split(item().name, '_')[1], 0, 4), '-',   \n            substring(split(item().name, '_')[1], 4, 2), '-',   \n            substring(split(item().name, '_')[1], 6, 2), 'T',   \n            substring(split(split(item().name, '_')[2], '.')[0], 0, 2), ':',  \n            substring(split(split(item().name, '_')[2], '.')[0], 2, 2), ':', \n            substring(split(split(item().name, '_')[2], '.')[0], 4, 2), 'Z'  \n        ),\n        'yyyy-MM-ddTHH:mm:ssZ'\n    ),\n    formatDateTime(pipeline().parameters.watermark, 'yyyy-MM-ddTHH:mm:ssZ')\n)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "ForEachSFTPFile",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Filter_New_Files",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Filter_New_Files').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"activities": [
+								{
+									"name": "CopyData",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "SftpReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false,
+												"disableChunking": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"logSettings": {
+											"enableCopyActivityLog": true,
+											"copyActivityLogSettings": {
+												"logLevel": "Warning",
+												"enableReliableLogging": false
+											},
+											"logLocationSettings": {
+												"linkedServiceName": {
+													"referenceName": "LS_AzureDataLake",
+													"type": "LinkedServiceReference"
+												},
+												"path": {
+													"value": "@concat('raw/log/',pipeline().parameters.source, '/', pipeline().parameters.entity,'_',pipeline().parameters.extract_timestamp,'_logs')",
+													"type": "Expression"
+												}
+											}
+										},
+										"dataIntegrationUnits": 256,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "DS_SFTP_CSV",
+											"type": "DatasetReference",
+											"parameters": {
+												"directory": {
+													"value": "@concat('/files/', pipeline().parameters.source, '/', pipeline().parameters.entity)",
+													"type": "Expression"
+												},
+												"filename": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DS_DataLake_CSV",
+											"type": "DatasetReference",
+											"parameters": {
+												"directory": {
+													"value": "@concat('staging/',pipeline().parameters.source, '/',pipeline().parameters.entity,'/',pipeline().parameters.entity,'_',pipeline().parameters.extract_timestamp)",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "UpdateWatermark",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "CopyData",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[Metadata].[usp_UpdateWatermark]",
+										"storedProcedureParameters": {
+											"EntityName": {
+												"value": {
+													"value": "@pipeline().parameters.entity",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"NewWatermark": {
+												"value": {
+													"value": "@formatDateTime(\n        concat(\n            substring(split(item().name, '_')[1], 0, 4), '-',   \n            substring(split(item().name, '_')[1], 4, 2), '-',   \n            substring(split(item().name, '_')[1], 6, 2), 'T',   \n            substring(split(split(item().name, '_')[2], '.')[0], 0, 2), ':',  \n            substring(split(split(item().name, '_')[2], '.')[0], 2, 2), ':', \n            substring(split(split(item().name, '_')[2], '.')[0], 4, 2), 'Z'  \n        ),\n        'yyyy-MM-ddTHH:mm:ssZ'\n    )",
+													"type": "Expression"
+												},
+												"type": "DateTime"
+											},
+											"Source": {
+												"value": {
+													"value": "@pipeline().parameters.source",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_AzureSQL",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"entity": {
+						"type": "string"
+					},
+					"watermark": {
+						"type": "string"
+					},
+					"source": {
+						"type": "string"
+					},
+					"extract_timestamp": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "Consumer"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-08-16T03:50:45Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_SFTP_CSV_METADATA')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SFTP_CSV')]",
+				"[concat(variables('factoryId'), '/datasets/DS_DataLake_CSV')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureSQL')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureDataLake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_Run_Every_3Hours')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "CheckPublicHoliday",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "SELECT COUNT(*) AS IsHoliday FROM HolidayCalendar WHERE HolidayDate = CAST(GETDATE() AS DATE);",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_PublicHoliday",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "DecisionMaker",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "CheckPublicHoliday",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(activity('CheckPublicHoliday').output.value[0].IsHoliday,0)",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "SendMail",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"method": "POST",
+										"headers": {},
+										"url": "https://prod-07.centralindia.logic.azure.com:443/workflows/400166d40e404cc48cce2c50f80699ba/triggers/When_a_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_a_HTTP_request_is_received%2Frun&sv=1.0&sig=ffrnXDGrX_jOb3qiOAyBlZKyWmbGTYntiT_3xa4Hq2Y",
+										"body": {
+											"value": "{\n    \"pipelineName\": \"@{pipeline().Pipeline}\",\n    \"runId\": \"@{pipeline().RunId}\",\n    \"time\": \"@{utcNow()}\"\n}",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Consumer_Orchestrator",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "PL_Incremental_Load_Orchestrator",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Generic"
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-08-16T16:39:43Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_PublicHoliday')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_Incremental_Load_Orchestrator')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_AzureMetadata')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_AzureSQL",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Common"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "Id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "SourceSystem",
+						"type": "varchar"
+					},
+					{
+						"name": "EntityName",
+						"type": "varchar"
+					},
+					{
+						"name": "WatermarkValue",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "LastUpdatedOn",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "Source",
+						"type": "varchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "Metadata",
+					"table": "Watermark"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureSQL')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_DataLake_CSV')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_AzureDataLake",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"directory": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Consumer"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().directory",
+							"type": "Expression"
+						},
+						"fileSystem": "raw"
+					},
+					"columnDelimiter": ",",
+					"compressionCodec": null,
+					"compressionLevel": "Optimal",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "customer_id",
+						"type": "String"
+					},
+					{
+						"name": "first_name",
+						"type": "String"
+					},
+					{
+						"name": "last_name",
+						"type": "String"
+					},
+					{
+						"name": "email",
+						"type": "String"
+					},
+					{
+						"name": "city",
+						"type": "String"
+					},
+					{
+						"name": "state",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureDataLake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_PublicHoliday')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_AzureSQL",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Common"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "HolidayID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "HolidayDate",
+						"type": "date"
+					},
+					{
+						"name": "HolidayName",
+						"type": "nvarchar"
+					},
+					{
+						"name": "HolidayDay",
+						"type": "nvarchar"
+					},
+					{
+						"name": "HolidayYear",
+						"type": "int",
+						"precision": 10
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "HolidayCalendar"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureSQL')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_SFTP_CSV')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_SFTP",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"directory": {
+						"type": "String"
+					},
+					"filename": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Consumer"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "SftpLocation",
+						"fileName": {
+							"value": "@{dataset().filename}",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@{dataset().directory}",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "supplier_id",
+						"type": "String"
+					},
+					{
+						"name": "name",
+						"type": "String"
+					},
+					{
+						"name": "phone",
+						"type": "String"
+					},
+					{
+						"name": "address",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_SFTP')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_SFTP_CSV_METADATA')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_SFTP",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"directory": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Consumer"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "SftpLocation",
+						"folderPath": {
+							"value": "@dataset().directory",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_SFTP')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_AwesomeKeyVault')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('LS_AwesomeKeyVault_properties_typeProperties_baseUrl')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_AzureDataLake')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('LS_AzureDataLake_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('LS_AzureDataLake_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_AzureSQL')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"server": "[parameters('LS_AzureSQL_properties_typeProperties_server')]",
+					"database": "[parameters('LS_AzureSQL_properties_typeProperties_database')]",
+					"encrypt": "mandatory",
+					"trustServerCertificate": false,
+					"authenticationType": "SQL",
+					"userName": "[parameters('LS_AzureSQL_properties_typeProperties_userName')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "LS_AwesomeKeyVault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "AzureSQL-password"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_AwesomeKeyVault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_SFTP')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "Sftp",
+				"typeProperties": {
+					"host": "[parameters('LS_SFTP_properties_typeProperties_host')]",
+					"port": "2222",
+					"skipHostKeyValidation": true,
+					"authenticationType": "Basic",
+					"userName": "[parameters('LS_SFTP_properties_typeProperties_userName')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "LS_AwesomeKeyVault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "sftp-password"
+					}
+				},
+				"connectVia": {
+					"referenceName": "AwesomeSHIR",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/AwesomeSHIR')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_AwesomeKeyVault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Trigger_Schedule_3Hours')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "PL_Run_Every_3Hours",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Hour",
+						"interval": 3,
+						"startTime": "2025-08-16T19:40:00",
+						"timeZone": "India Standard Time"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/PL_Run_Every_3Hours')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AwesomeSHIR')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "SelfHosted",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		}
+	]
+}

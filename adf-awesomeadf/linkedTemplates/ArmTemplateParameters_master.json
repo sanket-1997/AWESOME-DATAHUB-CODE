@@ -1,0 +1,39 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "adf-awesomeadf"
+		},
+		"LS_AzureDataLake_accountKey": {
+			"value": ""
+		},
+		"LS_AwesomeKeyVault_properties_typeProperties_baseUrl": {
+			"value": "https://kv-awesomekeyvault.vault.azure.net/"
+		},
+		"LS_AzureDataLake_properties_typeProperties_url": {
+			"value": "https://storageawesum.dfs.core.windows.net/"
+		},
+		"LS_AzureSQL_properties_typeProperties_server": {
+			"value": "awesome.database.windows.net"
+		},
+		"LS_AzureSQL_properties_typeProperties_database": {
+			"value": "azuresql-awesome"
+		},
+		"LS_AzureSQL_properties_typeProperties_userName": {
+			"value": "sanket"
+		},
+		"LS_SFTP_properties_typeProperties_host": {
+			"value": "127.0.0.1"
+		},
+		"LS_SFTP_properties_typeProperties_userName": {
+			"value": "sftpuser"
+		},
+		"containerUri": {
+			"value": ""
+		},
+		"containerSasToken": {
+			"value": ""
+		}
+	}
+}
