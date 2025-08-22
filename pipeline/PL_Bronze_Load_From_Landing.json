@@ -1,0 +1,88 @@
+{
+	"name": "PL_Bronze_Load_From_Landing",
+	"properties": {
+		"activities": [
+			{
+				"name": "FetchTables",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT source, entityname, watermarkvalue From Metadata.Watermark WHERE source = 'consumer';",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_AzureMetadata",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "FetchTables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('FetchTables').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "LoadDataToBronze",
+							"type": "DatabricksNotebook",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Users/sanketsrivastava090197@outlook.com/AWESOME-DATAHUB-CODE/notebooks/load_in_raw_generic",
+								"baseParameters": {
+									"source": {
+										"value": "@item().source",
+										"type": "Expression"
+									},
+									"table": {
+										"value": "@item().entityname",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "LS_ADB",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			}
+		],
+		"folder": {
+			"name": "Consumer"
+		},
+		"annotations": []
+	}
+}
