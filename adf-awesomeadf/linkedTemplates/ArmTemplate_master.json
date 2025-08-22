@@ -11,6 +11,10 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'accountKey' of 'LS_AzureDataLake'"
 		},
+		"LS_ADB_properties_typeProperties_existingClusterId": {
+			"type": "string",
+			"defaultValue": "0808-181623-ewdc41i3"
+		},
 		"LS_AwesomeKeyVault_properties_typeProperties_baseUrl": {
 			"type": "string",
 			"defaultValue": "https://kv-awesomekeyvault.vault.azure.net/"
@@ -74,6 +78,9 @@
 					},
 					"LS_AzureDataLake_properties_typeProperties_url": {
 						"value": "[parameters('LS_AzureDataLake_properties_typeProperties_url')]"
+					},
+					"LS_ADB_properties_typeProperties_existingClusterId": {
+						"value": "[parameters('LS_ADB_properties_typeProperties_existingClusterId')]"
 					},
 					"LS_AzureSQL_properties_typeProperties_server": {
 						"value": "[parameters('LS_AzureSQL_properties_typeProperties_server')]"

@@ -11,6 +11,10 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'accountKey' of 'LS_AzureDataLake'"
 		},
+		"LS_ADB_properties_typeProperties_existingClusterId": {
+			"type": "string",
+			"defaultValue": "0808-181623-ewdc41i3"
+		},
 		"LS_AwesomeKeyVault_properties_typeProperties_baseUrl": {
 			"type": "string",
 			"defaultValue": "https://kv-awesomekeyvault.vault.azure.net/"
@@ -44,6 +48,104 @@
 		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
 	},
 	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_Bronze_Load_From_Landing')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "FetchTables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "SELECT source, entityname, watermarkvalue From Metadata.Watermark WHERE source = 'consumer';",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_AzureMetadata",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "FetchTables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('FetchTables').output.value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "LoadDataToBronze",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/Users/sanketsrivastava090197@outlook.com/AWESOME-DATAHUB-CODE/notebooks/load_in_raw_generic",
+										"baseParameters": {
+											"source": {
+												"value": "@item().source",
+												"type": "Expression"
+											},
+											"table": {
+												"value": "@item().entityname",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_ADB",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Consumer"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_AzureMetadata')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_ADB')]"
+			]
+		},
 		{
 			"name": "[concat(parameters('factoryName'), '/PL_Incremental_Load_Orchestrator')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
@@ -531,6 +633,30 @@
 										"waitOnCompletion": true,
 										"parameters": {}
 									}
+								},
+								{
+									"name": "Databricks_Bronze_Orchestrator",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Consumer_Orchestrator",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "PL_Bronze_Load_From_Landing",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {}
+									}
 								}
 							]
 						}
@@ -547,7 +673,8 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_PublicHoliday')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_Incremental_Load_Orchestrator')]"
+				"[concat(variables('factoryId'), '/pipelines/PL_Incremental_Load_Orchestrator')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_Bronze_Load_From_Landing')]"
 			]
 		},
 		{
@@ -813,6 +940,30 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/LS_SFTP')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_ADB')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricks",
+				"typeProperties": {
+					"domain": "https://adb-1908403585453078.18.azuredatabricks.net",
+					"accessToken": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "LS_AwesomeKeyVault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "databricks-secret"
+					},
+					"existingClusterId": "[parameters('LS_ADB_properties_typeProperties_existingClusterId')]"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_AwesomeKeyVault')]"
 			]
 		},
 		{

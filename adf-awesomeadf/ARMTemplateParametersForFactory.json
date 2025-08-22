@@ -8,6 +8,9 @@
 		"LS_AzureDataLake_accountKey": {
 			"value": ""
 		},
+		"LS_ADB_properties_typeProperties_existingClusterId": {
+			"value": "0808-181623-ewdc41i3"
+		},
 		"LS_AwesomeKeyVault_properties_typeProperties_baseUrl": {
 			"value": "https://kv-awesomekeyvault.vault.azure.net/"
 		},
