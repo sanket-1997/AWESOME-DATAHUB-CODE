@@ -84,6 +84,25 @@
 								},
 								"waitOnCompletion": true
 							}
+						},
+						{
+							"name": "Databricks_Bronze_Orchestrator",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Consumer_Orchestrator",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"waitOnCompletion": true
+							}
 						}
 					]
 				}
