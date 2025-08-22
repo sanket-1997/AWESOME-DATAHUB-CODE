@@ -101,6 +101,10 @@
 							},
 							"userProperties": [],
 							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_Bronze_Load_From_Landing",
+									"type": "PipelineReference"
+								},
 								"waitOnCompletion": true
 							}
 						}
