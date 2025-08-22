@@ -2,7 +2,7 @@
 	"name": "Trigger_Schedule_3Hours",
 	"properties": {
 		"annotations": [],
-		"runtimeState": "Stopped",
+		"runtimeState": "Started",
 		"pipelines": [
 			{
 				"pipelineReference": {
