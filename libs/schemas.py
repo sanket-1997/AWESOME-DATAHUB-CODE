@@ -2,7 +2,7 @@ import re
 import json
 import os
 from jinja2 import Template
-from bdhcoredbx import utils
+from libs import utils
 
 def read_schema(entity: str, context={}) -> dict:
     libPath = utils.get_library_path() + f"\\schema\\avro\\{entity}.avro"
