@@ -2,8 +2,10 @@ import os
 import yaml
 
 def get_library_path():
-    full_path = os.getcwd()
-    return full_path
+    full_path = os.path.realpath(__file__)
+    datahubPath = os.path.dirname(os.path.dirname(full_path))
+
+    return datahubPath
 
 
 def generate_dc_file_path(env = None, layer = None, source = None, entity = None ):
