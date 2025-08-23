@@ -2,9 +2,6 @@ from libs import utils
 import yaml
 
 
-
-
-
 #this will return field schema so we will get most of the value
 def read_schema(env = None, layer = None, source = None, entity = None ) -> dict:
     data = utils.open_yaml_file(utils.generate_dc_file_path(env,layer,source,entity))
@@ -35,10 +32,7 @@ def schema_evolution_decider(source_attributes: list,
         return False
 
 
-a= read_schema('dev', 'silver', 'consumer', 'dim_customers')
 
-print(yaml.dump(a,sort_keys=False, indent=2))
-print(extract_attributes(a))
 
 
 
