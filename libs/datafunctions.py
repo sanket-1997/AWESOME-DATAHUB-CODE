@@ -78,7 +78,8 @@ def clean_data(df, metadata : dict):
         if pattern:
             default_value = utils.get_default_value(col_name, dtype)
             df = df.withColumn(
-                col_name, when(F.col(col_name).rlike(pattern), F.col(col_name)).otherwise(F.lit(default_value))
+                col_name, F.when(F.col(col_name).rlike(pattern), F.col(col_name)).otherwise(F.lit(default_value))
+
             )
     
     return df
