@@ -20,11 +20,9 @@ for col, rules in a.items():
 # COMMAND ----------
 
 df = spark.read.format("delta").load("abfss://bronze@storageawesum.dfs.core.windows.net/consumer/customers/")
-display(df)
-schema = df.schema
-schema_list =[field.name for field in schema.fields]
-print(schema)
-print(schema_list)
+#display(df)
+print(schema_handler.get_dataframe_schema(df))  # Verify the correct function name or import
+
 
 
 # COMMAND ----------

@@ -32,12 +32,23 @@ def schema_evolution_decider(source_attributes: list,
         return False
 
 
-
+#this return data frame schema
 def get_dataframe_schema(df, mode ="attributes_only"):
     if mode == "attributes_only":
         return[field.name for field in df.schema.fields]
     elif mode == "full":
         return [(field.name, field.dataType.simpleString()) for field in df.schema.fields]
+
+
+#this to check it particular table exists or not
+def uc_table_exists(spark, catalog: str, schema: str, table: str) -> bool:
+    try:
+        spark.sql(f"DESCRIBE TABLE {catalog}.{schema}.{table}")
+        return True
+    except Exception as e:
+        return False
+
+
 
 
 
