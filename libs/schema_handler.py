@@ -33,6 +33,11 @@ def schema_evolution_decider(source_attributes: list,
 
 
 
+def get_dataframe_schema(df, mode ="attributes_only"):
+    if mode == "attributes_only":
+        return[field.name for field in df.schema.fields]
+    elif mode == "full":
+        return [(field.name, field.dataType.simpleString()) for field in df.schema.fields]
 
 
 
