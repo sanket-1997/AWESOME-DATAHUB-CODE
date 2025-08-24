@@ -31,6 +31,27 @@ def open_yaml_file(file_path):
         
 
     return Exception
+
+
+def get_default_value(col_name: str, dtype: str):
+    dtype = dtype.lower()
+    
+    # handle specific business columns first
+    if "email" in col_name.lower():
+        return "unknown@example.com"
+    elif "phone" in col_name.lower():
+        return "0000000000"
+
+    
+    # fallback by type
+    if dtype in ("int", "integer", "long", "decimal", "float", "double", "short", "byte"):
+        return 0
+    elif dtype == "date":
+        return "1800-01-01"
+    elif dtype == "timestamp":
+        return "1800-01-01 00:00:00"
+    else:
+        return ""  # generic default for strings
     
 
 
