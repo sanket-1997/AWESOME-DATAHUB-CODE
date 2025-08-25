@@ -1,5 +1,8 @@
+from delta.tables import DeltaTable
+from pyspark.sql import SparkSession
 from libs import utils
 import yaml
+
 
 
 #this will return field schema so we will get most of the value
@@ -14,9 +17,7 @@ def extract_attributes(field_schema) -> list:
 
 
 #this is to decide whether to evolve the schema or not
-def schema_evolution_decider(source_attributes: list, 
-                         target_attributes: list, 
-                         contract_attributes: list) -> bool:
+def schema_evolution_decider(source_attributes: list, target_attributes: list, contract_attributes: list) -> bool:
 
     source_set = set(source_attributes)
     target_set = set(target_attributes)
@@ -47,6 +48,52 @@ def uc_table_exists(spark, catalog: str, schema: str, table: str) -> bool:
         return True
     except Exception as e:
         return False
+
+
+def handle_schema_evolution( spark: SparkSession, source_df, target_path: str, contract_attributes: list, mode: str = "append"):
+    """
+    Evolves a Delta table schema if allowed by the schema contract.
+
+    Args:
+        spark (SparkSession): Active Spark session.
+        source_df (DataFrame): Source DataFrame with latest schema.
+        target_path (str): Path to the target Delta table.
+        contract_attributes (list): List of allowed attributes as per contract.
+        mode (str): Write mode ("append" or "overwrite"). Default = "append".
+
+    Returns:
+        bool: True if schema was evolved, False otherwise.
+    """
+
+    # Load target schema if table exists
+    if DeltaTable.isDeltaTable(spark, target_path):
+        target_df = spark.read.format("delta").load(target_path)
+        target_attributes = target_df.columns
+    else:
+        target_attributes = []
+
+    source_attributes = source_df.columns
+
+    # Decide if evolution is allowed
+    can_evolve = schema_evolution_decider(
+        source_attributes, target_attributes, contract_attributes
+    )
+
+    if not can_evolve:
+        print("Schema evolution not allowed by contract. Skipping write.")
+        return False
+
+    # Write with schema evolution enabled
+    (
+        source_df.write.format("delta")
+        .mode(mode)
+        .partitionBy("extract_timestamp")
+        .option("mergeSchema", "true")   # <-- key part
+        .save(target_path)
+    )
+
+    print("Schema evolved successfully.")
+    return True
 
 
 

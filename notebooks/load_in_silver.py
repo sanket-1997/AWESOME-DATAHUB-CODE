@@ -8,14 +8,20 @@ from libs import schema_handler as sh
 
 # COMMAND ----------
 
-dfRaw = spark.read.table("datahub_dev_bronze.consumer.orders")
-display(dfRaw)
-dfRaw.withColumn("quantity", lit(1)).write.mode("append").saveAsTable("datahub_dev_silver.consumer.dim_customers")
+dfBronze = spark.read.table("datahub_dev_bronze.consumer.customers").filter("extract_timestamp > 'DH_CUSTOMERS_19000823_003108'")
+display(dfBronze)
 
 # COMMAND ----------
 
-a= schema_handler.read_schema('dev','silver', 'consumer', 'dim_customers')
-print(a)
+metadata= schema_handler.read_schema('dev','silver', 'consumer', 'dim_customers')
+print(metadata)
+
+# COMMAND ----------
+
+dfBronze = datafunctions.clean_data(dfBronze, metadata)
+dfBronze = datafunctions.cast_columns(dfBronze, metadata)
+
+display(dfBronze)
 
 # COMMAND ----------
 
