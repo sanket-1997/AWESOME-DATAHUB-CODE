@@ -7,9 +7,20 @@ import yaml
 
 #this will return field schema so we will get most of the value
 def read_schema(env = None, layer = None, source = None, entity = None ) -> dict:
-    data = utils.open_yaml_file(utils.generate_dc_file_path(env,layer,source,entity))
-    field_schema = data["models"][f"datahub_{env}_{layer}-{source}-{entity}"]["fields"]
-    return field_schema
+    """
+    Reads schema fields and primary keys from the data contract YAML.
+    Returns:
+        (dict, list): field_schema, primary_keys
+    """
+    data = utils.open_yaml_file(utils.generate_dc_file_path(env, layer, source, entity))
+    model_key = f"datahub_{env}_{layer}-{source}-{entity}"
+    model_data = data["models"][model_key]
+
+    field_schema = model_data["fields"]
+    primary_keys = model_data.get("primaryKey", [])
+
+    return field_schema, primary_keys
+
 
 #this will return set of attributes and will be used for schema evolution
 def extract_attributes(field_schema) -> list:
