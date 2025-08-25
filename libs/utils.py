@@ -1,5 +1,6 @@
 import os
 import yaml
+from datetime import datetime
 
 import os
 from pathlib import Path
@@ -52,6 +53,16 @@ def get_default_value(col_name: str, dtype: str):
         return "1800-01-01 00:00:00"
     else:
         return ""  # generic default for strings
+    
+
+def format_timestamp(ts: str) -> str:
+    """
+    Converts timestamp string like '2025-08-24T11:23:39.0000000'
+    to '20250824_112339'.
+    """
+    # Parse with microseconds (ignore trailing zeros beyond 6 digits)
+    dt = datetime.strptime(ts[:26], "%Y-%m-%dT%H:%M:%S.%f")
+    return dt.strftime("%Y%m%d_%H%M%S")
     
 
 
