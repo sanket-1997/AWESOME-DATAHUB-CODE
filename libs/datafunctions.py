@@ -28,13 +28,42 @@ def filter_unique_rows(spark, df, str_schema, pk_columns):
 
 
 def fill_null_primary_keys(df, primary_keys):
-    #iterate over the primary keys and fill null values with appropriate replacements
+    """
+    Fill null values in primary key columns with defaults based on data type.
+    
+    - StringType → ""
+    - Numeric (byte, short, int, long, float, double) → 0
+    - DateType → "yyyy-MM-dd"
+    """
     schema = df.schema
     for field in schema:
         if field.name in primary_keys:
-            if field.dataType == StringType():
-                print(f"replacing null values in {field.name} with ''")
-                df = df.withColumn(field.name, F.when(F.col(field.name).isNull(),"").otherwise(F.col(field.name)))
+            dtype = field.dataType
+
+            if isinstance(dtype, StringType):
+                print(f"Replacing null values in {field.name} with ''")
+                df = df.withColumn(
+                    field.name,
+                    F.when(F.col(field.name).isNull(), "").otherwise(F.col(field.name))
+                )
+
+            elif isinstance(dtype, (ByteType, ShortType, IntegerType, LongType, FloatType, DoubleType)):
+                print(f"Replacing null values in {field.name} with 0")
+                df = df.withColumn(
+                    field.name,
+                    F.when(F.col(field.name).isNull(), F.lit(0)).otherwise(F.col(field.name))
+                )
+
+            elif isinstance(dtype, DateType):
+                print(f"Replacing null values in {field.name} with 'yyyy-MM-dd'")
+                df = df.withColumn(
+                    field.name,
+                    F.when(F.col(field.name).isNull(), F.lit("yyyy-MM-dd")).otherwise(F.col(field.name))
+                )
+            else:
+                pass
+
+    return df
 
 
 #cast columns coming from raw data to cleansed layer. 
