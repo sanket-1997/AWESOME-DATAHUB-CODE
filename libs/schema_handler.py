@@ -27,6 +27,13 @@ def extract_attributes(field_schema) -> list:
     return list(set(field_schema))
 
 
+def extract_surrogate_keys(field_schema) -> list:
+    extract_attributes = extract_attributes(field_schema)
+    return [field for field in extract_attributes if "_sk" in field.lower()]
+
+
+
+
 #this is to decide whether to evolve the schema or not
 def schema_evolution_decider(source_attributes: list, target_attributes: list, contract_attributes: list) -> bool:
 

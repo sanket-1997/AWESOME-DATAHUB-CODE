@@ -50,11 +50,10 @@ models:
         description: dbx extract timestamp
         type: timestamp
         required: true
-      customer_sk:
+      customer_id_sk:
         description: surrogate key
         type: long
         required: true
-        surrogateKey: true
       effective_start_date:
         description: record start date
         type: date

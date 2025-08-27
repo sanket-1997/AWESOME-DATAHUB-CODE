@@ -114,6 +114,30 @@ def clean_data(df, metadata : dict):
     return df
 
 
+def assign_surrogate_key(spark, df, catalog: str, schema: str, table: str,  surrogate_key: str, initial_val = 1):
+    """
+        Assign surrogate keys for initial and incremental runs.
+    
+    """
+    if not schema_handler.uc_table_exists(spark, catalog, schema, table):
+        df = df.withColumn(surrogate_key, F.lit(initial_val) + F.monotonically_increasing_id())
+    else:
+        max_sk_val = spark.table(f"{catalog}.{schema}.{table}").agg(F.max(surrogate_key).alias("max_sk")).collect()[0]["max_sk"]
+        df = df.withColumn(surrogate_key, F.lit(max_sk_val) + F.lit(initial_val) + F.monotonically_increasing_id())
+    
+    return df
+
+
+def generate_merge_condition(surrogate_keys: list):
+
+    return " AND ".join([f"target.{sk} = source.{sk}" for sk in surrogate_keys])"
+    
+
+
+
+def scd1_merge(spark, source_df, target_table, surrogate_keys):
+    #Work on this
+    #merge_condition = generate_merge_condition(surrogate_keys)
 
 
     
