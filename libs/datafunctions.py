@@ -130,14 +130,69 @@ def assign_surrogate_key(spark, df, catalog: str, schema: str, table: str,  surr
 
 def generate_merge_condition(surrogate_keys: list):
 
-    return " AND ".join([f"target.{sk} = source.{sk}" for sk in surrogate_keys])"
+    return " AND ".join([f"target.{sk} = source.{sk}" for sk in surrogate_keys])
     
 
 
 
 def scd1_merge(spark, source_df, target_table, surrogate_keys):
     #Work on this
-    #merge_condition = generate_merge_condition(surrogate_keys)
+    try:
+        
+        merge_condition = generate_merge_condition(surrogate_keys)
+
+        delta_table = DeltaTable.forName(spark, target_table)
+        (delta_table.alias("target")
+                        .merge(source_df.alias("source"),merge_condition)
+                        .whenMatchedUpdateAll()
+                        .whenNotMatchedInsertAll()
+                        .execute()   
+                    )
+        return True
+    except Exception as e:
+        print(e)
+    
+    return False
+
+
+def scd2_merge(spark, source_df, target_table, surrogate_keys):
+
+    try:
+        merge_condition = generate_merge_condition(surrogate_keys)
+        delta_table = DeltaTable.forName(spark, target_table)
+
+        (delta_table.alias("target")
+                .merge(source_df.alias("source"),merge_condition = f" AND target.effective_end_date = DATE()'9999-12-31')")
+                .whenMatchedUpdate(
+
+                    condition =" OR ".join( [f"target.{col} != source.{col}" for col in source_df.columns if col not in surrogate_keys +["effective_start_date  ","effective_end_date"]]
+                    ),
+                    set = {
+                        "effective_end_date": F.current_date().cast("date")
+                    }
+                )
+                .whenNotMatchedInsert(
+                    values = { **{col: f"source.{col}" for col in source_df.columns},
+                            "effective_start_date": F.current_date().cast("date"),
+                            "effective_end_date": F.lit("9999-12-31").cast("date")
+
+                    }
+
+
+                )
+                .execute()
+        
+        )
+
+        return True
+    except Exception as e:
+        print(e)
+    
+    return False
+
+
+
+
 
 
     
