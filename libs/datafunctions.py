@@ -162,7 +162,7 @@ def scd2_merge(spark, source_df, target_table, surrogate_keys):
         delta_table = DeltaTable.forName(spark, target_table)
 
         (delta_table.alias("target")
-                .merge(source_df.alias("source"),merge_condition = f" AND target.effective_end_date = DATE()'9999-12-31')")
+                .merge(source_df.alias("source"),merge_condition = f" AND target.effective_end_date IS '9999-12-31'")
                 .whenMatchedUpdate(
 
                     condition =" OR ".join( [f"target.{col} != source.{col}" for col in source_df.columns if col not in surrogate_keys +["effective_start_date  ","effective_end_date"]]
