@@ -9,6 +9,7 @@ from libs import schema_handler
 from pyspark.sql import functions as F
 from pyspark.sql.types import *
 from delta.tables import *
+from functools import reduce
 
 
 def filter_unique_rows(spark, df, str_schema, pk_columns):
@@ -133,9 +134,12 @@ def generate_merge_condition(surrogate_keys: list):
     return " AND ".join([f"target.{sk} = source.{sk}" for sk in surrogate_keys])
 
 
-def generate_join_condition(source_table: str, destination_table: str, primary_keys: list) -> str:
-
-    return " AND ".join([f"source_table.{pk} = target_table.{pk}" for pk in primary_keys])
+def generate_join_condition(df1, df2, primary_keys):
+    return reduce(
+        lambda cond, col: cond & (df1[col] == df2[col]),   #  combine conditions
+        primary_keys[1:],                                  #iterate over remaining keys
+        df1[primary_keys[0]] == df2[primary_keys[0]]       # initial value (first key)
+    )
     
 
 
