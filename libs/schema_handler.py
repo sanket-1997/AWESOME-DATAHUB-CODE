@@ -15,11 +15,23 @@ def read_schema(env = None, layer = None, source = None, entity = None ) -> dict
     data = utils.open_yaml_file(utils.generate_dc_file_path(env, layer, source, entity))
     model_key = f"datahub_{env}_{layer}-{source}-{entity}"
     model_data = data["models"][model_key]
+    description = data.get("info", {}).get("description", "").upper()
+    
+
+    if "SCD1" in description:
+        table_type = "SCD1"
+    elif "SCD2" in description:
+        table_type = "SCD2"
+    elif "FACT" in description:
+        table_type = "FACT"
+    else:
+        table_type = "UNKNOWN"
 
     field_schema = model_data["fields"]
     primary_keys = model_data.get("primaryKey", [])
+    dependencies =  model_data.get("dependencies", [])
 
-    return field_schema, primary_keys
+    return field_schema, primary_keys, table_type, dependencies
 
 
 #this will return set of attributes and will be used for schema evolution
