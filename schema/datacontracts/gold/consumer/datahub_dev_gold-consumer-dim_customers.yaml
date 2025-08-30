@@ -33,7 +33,7 @@ models:
         description: phone number
         type: string
         required: false
-        pattern: ^[0-9+\\- ]{7,15}$
+        pattern: ^[0-9+\- ]{7,15}$
       address:
         description: address
         type: string
@@ -60,6 +60,6 @@ models:
       effective_end_date:
         description: record end date
         type: date
-
     primaryKey:
       - customer_id
+
