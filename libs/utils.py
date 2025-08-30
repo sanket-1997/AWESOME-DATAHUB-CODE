@@ -1,6 +1,6 @@
 import os
 import yaml
-from datetime import datetime
+from datetime import datetime, date
 
 import os
 from pathlib import Path
@@ -20,7 +20,8 @@ def generate_dc_file_path(env=None, layer=None, source=None, entity=None):
     file_path = base_path / "schema" / "datacontracts" / layer / source / f"datahub_{env}_{layer}-{source}-{entity}.yaml"
     return str(file_path)
 
-
+def str_to_date(date_str: str)-> date:
+    return datetime.strptime(date_str, "%Y-%m-%d").date()
 
 def open_yaml_file(file_path):
     try:
