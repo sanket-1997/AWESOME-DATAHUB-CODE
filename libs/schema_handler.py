@@ -40,8 +40,8 @@ def extract_attributes(field_schema) -> list:
 
 
 def extract_surrogate_keys(field_schema) -> list:
-    extract_attributes = extract_attributes(field_schema)
-    return [field for field in extract_attributes if "_sk" in field.lower()]
+    attributes = extract_attributes(field_schema)
+    return [field for field in attributes if "_sk" in field.lower()]
 
 
 
