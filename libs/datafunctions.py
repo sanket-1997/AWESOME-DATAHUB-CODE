@@ -131,6 +131,11 @@ def assign_surrogate_key(spark, df, catalog: str, schema: str, table: str,  surr
 def generate_merge_condition(surrogate_keys: list):
 
     return " AND ".join([f"target.{sk} = source.{sk}" for sk in surrogate_keys])
+
+
+def generate_join_condition(source_table: str, destination_table: str, primary_keys: list) -> str:
+
+    return " AND ".join([f"source_table.{pk} = target_table.{pk}" for pk in primary_keys])
     
 
 

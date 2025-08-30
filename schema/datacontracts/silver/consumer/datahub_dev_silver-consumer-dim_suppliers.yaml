@@ -1,0 +1,46 @@
+dataContractSpecification: 1.1.0
+id: ''
+info:
+  title: BDH Data Contract for datahub_dev_silver-consumer-dim_suppliers
+  version: 1.0.0
+  description: Supplier dimension table (cleansed)
+  owner: BDH
+  status: active
+  contact:
+    name: John Doe
+    email: abc@gmail.com
+
+models:
+  datahub_dev_silver-consumer-dim_suppliers:
+    description: Supplier dimension table (cleansed)
+    type: table
+    fields:
+      supplier_id:
+        description: supplier id
+        type: string
+        required: true
+        unique: true
+      name:
+        description: supplier name
+        type: string
+        required: true
+      phone:
+        description: supplier phone
+        type: string
+        required: false
+        pattern: "^[0-9+\- ]{7,15}$"
+      address:
+        description: supplier address
+        type: string
+        required: false
+      extract_timestamp:
+        description: source extract timestamp
+        type: string
+        required: true
+      dbx_extract_timestamp:
+        description: dbx extract timestamp
+        type: timestamp
+        required: true
+
+    primaryKey:
+      - supplier_id
