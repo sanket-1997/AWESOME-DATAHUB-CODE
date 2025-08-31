@@ -1,0 +1,59 @@
+dataContractSpecification: 1.1.0
+id: ''
+info:
+  title: BDH Data Contract for datahub_dev_gold-consumer-dim_products
+  version: 2.0.0
+  description: SCD2 Product dimension table (curated, SCD2 for price changes)
+  owner: BDH
+  status: active
+  contact:
+    name: John Doe
+    email: abc@gmail.com
+
+models:
+  datahub_dev_gold-consumer-dim_products:
+    description: Product dimension table (curated)
+    type: table
+    fields:
+      product_id:
+        description: natural business key
+        type: int
+        required: true
+        unique: true
+      product_name:
+        description: product name
+        type: string
+        required: true
+      category:
+        description: product category
+        type: string
+        required: true
+      price:
+        description: product price
+        type: decimal
+        required: true
+      supplier_id:
+        description: supplier foreign key
+        type: string
+        required: true
+      product_id_sk:
+        description: surrogate key
+        type: long
+        required: true
+      supplier_id_sk:
+        description: supplier foreign key
+        type: long
+        required: true
+      effective_start_date:
+        description: record start date (SCD2 for price changes)
+        type: date
+      effective_end_date:
+        description: record end date
+        type: date
+
+
+    primaryKey:
+      - product_id
+
+    dependencies:
+      - datahub_dev_gold.consumer.dim_suppliers.supplier_id_sk
