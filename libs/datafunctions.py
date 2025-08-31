@@ -174,7 +174,9 @@ def scd2_merge(spark, source_df, target_table, surrogate_keys):
                 .merge(source_df.alias("source"),merge_condition + f" AND target.effective_end_date = '9999-12-31'")
                 .whenMatchedUpdate(
 
-                    condition =" OR ".join( [f"target.{col} != source.{col}" for col in source_df.columns if col not in surrogate_keys +["effective_start_date  ","effective_end_date"]]
+                    condition =" OR ".join( [    f"( (target.{col} IS NULL AND source.{col} IS NOT NULL) "
+                                                 f"OR (target.{col} IS NOT NULL AND source.{col} IS NULL) "
+                                                f"OR (target.{col} <> source.{col}) )" for col in source_df.columns if col not in surrogate_keys +["effective_start_date", "effective_end_date"]]
                     ),
                     set = {
                         "effective_end_date": F.current_date().cast("date")
