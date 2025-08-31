@@ -112,7 +112,7 @@
 									},
 									"userProperties": [],
 									"typeProperties": {
-										"notebookPath": "/Users/sanketsrivastava090197@outlook.com/AWESOME-DATAHUB-CODE/notebooks/load_in_raw_generic",
+										"notebookPath": "/Users/sanketsrivastava090197@outlook.com/AWESOME-DATAHUB-CODE/notebooks/load_in_bronze_generic",
 										"baseParameters": {
 											"source": {
 												"value": "@item().source",
