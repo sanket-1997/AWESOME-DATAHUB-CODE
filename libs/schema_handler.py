@@ -78,6 +78,42 @@ def uc_table_exists(spark, catalog: str, schema: str, table: str) -> bool:
         return True
     except Exception as e:
         return False
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
+
+def get_changed_new_records(df_old: DataFrame, df_new: DataFrame, key_col: str, ignore_cols: list = None) -> DataFrame:
+    """
+    Compare two DataFrames and return only the new records (df_new) 
+    where at least one non-ignored column differs from df_old.
+    
+    Args:
+        df_old (DataFrame): Old dataframe
+        df_new (DataFrame): New dataframe
+        key_col (str): Primary key column to join on
+        ignore_cols (list): Columns to ignore while comparing
+    
+    Returns:
+        DataFrame: New records from df_new where values differ
+    """
+    if ignore_cols is None:
+        ignore_cols = []
+    
+    # Columns to compare
+    compare_cols = [c for c in df_old.columns if c in df_new.columns and c not in ignore_cols + [key_col]]
+    
+    df_old_alias = df_old.alias("a")
+    df_new_alias = df_new.alias("b")
+    
+    # Join old and new on key
+    df_joined = df_old_alias.join(df_new_alias, on=key_col, how="inner")
+    
+    # Build OR condition for any differing column
+    diff_condition = " OR ".join([f"a.{c} <> b.{c}" for c in compare_cols])
+    
+    # Filter and select only new side (b.*)
+    df_diff_new = df_joined.filter(diff_condition).select("b.*")
+    
+    return df_diff_new
 
 
 def handle_schema_evolution( spark: SparkSession, source_df, target_path: str, contract_attributes: list, mode: str = "append"):
