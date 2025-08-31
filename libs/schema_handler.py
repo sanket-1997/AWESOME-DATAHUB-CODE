@@ -43,6 +43,11 @@ def extract_surrogate_keys(field_schema) -> list:
     attributes = extract_attributes(field_schema)
     return [field for field in attributes if "_sk" in field.lower()]
 
+#This will be move the sk to the end.
+def reorder_with_sk_last(df, sk_cols):
+    # Move surrogate keys to the end
+    non_sk_cols = [c for c in df.columns if c not in sk_cols]
+    return df.select(non_sk_cols + sk_cols)
 
 
 
