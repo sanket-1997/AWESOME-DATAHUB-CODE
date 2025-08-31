@@ -17,7 +17,7 @@ models:
     fields:
       supplier_id:
         description: natural business key
-        type: string
+        type: int
         required: true
         unique: true
       name:
@@ -32,7 +32,7 @@ models:
         description: supplier address
         type: string
         required: false
-      supplier_sk:
+      supplier_id_sk:
         description: surrogate key
         type: long
         required: true

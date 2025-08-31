@@ -17,7 +17,7 @@ models:
     fields:
       supplier_id:
         description: supplier id
-        type: string
+        type: int
         required: true
         unique: true
       name:
@@ -28,7 +28,7 @@ models:
         description: supplier phone
         type: string
         required: false
-        pattern: "^[0-9+\- ]{7,15}$"
+        pattern: "^[0-9+\\- ]{7,15}$"
       address:
         description: supplier address
         type: string

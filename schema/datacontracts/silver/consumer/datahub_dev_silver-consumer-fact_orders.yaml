@@ -1,0 +1,53 @@
+dataContractSpecification: 1.1.0
+id: ''
+info:
+  title: BDH Data Contract for datahub_dev_cleansed-consumer-fact_orders
+  version: 1.0.0
+  description: Orders fact table (cleansed)
+  owner: BDH
+  status: active
+  contact:
+    name: John Doe
+    email: abc@gmail.com
+
+models:
+  datahub_dev_silver-consumer-fact_orders:
+    description: Orders fact table (cleansed)
+    type: table
+    fields:
+      order_id:
+        description: order id
+        type: int
+        required: true
+        unique: true
+      customer_id:
+        description: foreign key to customer
+        type: int
+        required: true
+      product_id:
+        description: foreign key to product
+        type: int
+        required: true
+      quantity:
+        description: quantity ordered
+        type: integer
+        required: true
+      total_price:
+        description: total price
+        type: decimal
+        required: true
+      order_date:
+        description: date of order
+        type: date
+        required: true
+      extract_timestamp:
+        description: source extract timestamp
+        type: string
+        required: true
+      dbx_extract_timestamp:
+        description: dbx extract timestamp
+        type: timestamp
+        required: true
+
+    primaryKey:
+      - order_id

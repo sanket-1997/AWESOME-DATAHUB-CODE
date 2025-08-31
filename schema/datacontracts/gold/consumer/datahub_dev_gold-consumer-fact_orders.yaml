@@ -1,0 +1,60 @@
+dataContractSpecification: 1.1.0
+id: ''
+info:
+  title: BDH Data Contract for datahub_dev_gold-consumer-fact_orders
+  version: 2.0.0
+  description: FACT Order table (curated)
+  owner: BDH
+  status: active
+  contact:
+    name: John Doe
+    email: abc@gmail.com
+
+models:
+  datahub_dev_gold-consumer-fact_orders:
+    description: Orders fact table (curated)
+    type: table
+    fields:
+      order_id:
+        description: natural business key
+        type: int
+        required: true
+        unique: true
+      customer_id_sk:
+        description: surrogate key for customer
+        type: long
+        required: true
+      product_id_sk:
+        description: surrogate key for product
+        type: long
+        required: true
+      quantity:
+        description: quantity ordered
+        type: integer
+        required: true
+      total_price:
+        description: total price
+        type: decimal
+        required: true
+      order_date:
+        description: date of order
+        type: date
+        required: true
+      order_id_sk:
+        description: surrogate key for fact row
+        type: long
+        required: true
+            extract_timestamp:
+      description: source extract timestamp
+        type: string
+        required: true
+      dbx_extract_timestamp:
+        description: dbx extract timestamp
+        type: timestamp
+        required: true
+
+    primaryKey:
+      - order_id
+    dependencies:
+      - datahub_dev_gold.consumer.dim_customers.customer_id_sk
+      - datahub_dev_gold.consumer.dim_products.product_id_sk
