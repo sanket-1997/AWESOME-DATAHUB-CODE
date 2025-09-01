@@ -179,23 +179,26 @@ def resolve_dependencies(spark, df, dependencies: list):
 
         dep_df = spark.table(full_table_name)
 
-        # Build join condition
-        join_cond = [df[nk] == dep_df[nk] for nk in natural_keys]
+        # Alias natural keys from dep_df to avoid clashing with df
+        dep_df = dep_df.select(
+            *[dep_df[nk].alias(f"{nk}_dep") for nk in natural_keys],
+            dep_df[surrogate_key]
+        )
+
+        # Build join condition between df.natural_key and dep_df.natural_key_dep
+        join_cond = [df[nk] == dep_df[f"{nk}_dep"] for nk in natural_keys]
         cond = join_cond[0]
         for jc in join_cond[1:]:
             cond = cond & jc
 
         # Perform join
-        df = df.join(
-            dep_df.select(*natural_keys, surrogate_key),
-            on=cond,
-            how="left"
-        )
+        df = df.join(dep_df, on=cond, how="left")
 
-        # Drop natural keys to avoid duplication (keep only base df keys)
+        # Drop only the dependency natural keys (keep base df ones)
         for nk in natural_keys:
-            if nk in df.columns:
-                df = df.drop(nk)
+            dep_col = f"{nk}_dep"
+            if dep_col in df.columns:
+                df = df.drop(dep_col)
 
     return df
 
