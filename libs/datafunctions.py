@@ -143,7 +143,7 @@ def generate_join_condition(df1, df2, primary_keys):
 
 
 #this function will be helpful for mapping and lookup functions and all. and would enable to have snowflake related activities
-def resolve_dependencies(df, dependencies: list):
+def resolve_dependencies(spark, df, dependencies: list):
 
     for dep in dependencies:
         full_table_name = dep["table"]

@@ -55,11 +55,13 @@ models:
 
     primaryKey:
       - order_id
+
     dependencies:
-      - datahub_dev_gold.consumer.dim_customers.customer_id_sk
-      - datahub_dev_gold.consumer.dim_products.product_id_sk
-    dependencies:
-      - table: datahub_dev_gold.consumer.dim_suppliers
-        surrogateKey: supplier_id_sk
+      - table: datahub_dev_gold.consumer.dim_customers
+        surrogateKey: customer_id_sk
         naturalKeys:
-          - supplier_id
+          - customer_id
+      - table: datahub_dev_gold.consumer.dim_products
+        surrogateKey: product_id_sk
+        naturalKeys:
+          - product_id
