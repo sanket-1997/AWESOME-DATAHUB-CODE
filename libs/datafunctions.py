@@ -189,7 +189,7 @@ def resolve_dependencies(spark, df, dependencies: list):
         join_cond = [df[nk] == dep_df[f"{nk}_dep"] for nk in natural_keys]
         cond = join_cond[0]
         for jc in join_cond[1:]:
-            cond = cond & jc
+            cond = cond & jcdatahub_dev_gold.consumer.fact_orders
 
         # Perform join
         df = df.join(dep_df, on=cond, how="left")

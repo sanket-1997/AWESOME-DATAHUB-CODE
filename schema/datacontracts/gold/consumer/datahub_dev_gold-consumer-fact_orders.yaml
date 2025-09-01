@@ -40,18 +40,20 @@ models:
         description: date of order
         type: date
         required: true
-      order_id_sk:
-        description: surrogate key for fact row
-        type: long
-        required: true
-            extract_timestamp:
-      description: source extract timestamp
+      extract_timestamp:
+        description: source extract timestamp
         type: string
         required: true
       dbx_extract_timestamp:
         description: dbx extract timestamp
         type: timestamp
         required: true
+      create_date:
+        description: record start date
+        type: date
+      update_date:
+        description: record end date
+        type: date
 
     primaryKey:
       - order_id

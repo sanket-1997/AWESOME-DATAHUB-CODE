@@ -54,6 +54,8 @@ models:
 
     primaryKey:
       - product_id
+    surrogateKey:
+      -
 
     dependencies:
       - table: datahub_dev_gold.consumer.dim_suppliers
