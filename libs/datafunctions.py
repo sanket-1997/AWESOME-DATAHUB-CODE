@@ -142,6 +142,33 @@ def generate_join_condition(df1, df2, primary_keys):
     )
 
 
+
+def check_dependencies_exist(spark, dependencies: list) -> bool:
+    """
+    Check if all dependency tables exist in Spark catalog.
+    
+    Args:
+        spark: SparkSession
+        dependencies: list of dicts with 'table' key
+    
+    Returns:
+        True if all exist, False otherwise
+    """
+    missing = []
+    for dep in dependencies:
+        full_table_name = dep["table"]
+        try:
+            spark.table(full_table_name)  # will throw if table doesn't exist
+        except Exception:
+            missing.append(full_table_name)
+
+    if missing:
+        print("Missing dependency tables:", missing)
+        return False
+    
+    print("All dependency tables exist")
+    return True
+
 #this function will be helpful for mapping and lookup functions and all. and would enable to have snowflake related activities
 def resolve_dependencies(spark, df, dependencies: list):
 
@@ -163,6 +190,10 @@ def resolve_dependencies(spark, df, dependencies: list):
             how="left"
                      
             )
+        # Drop dependency natural keys to avoid duplication
+        for nk in natural_keys:
+            if nk in df.columns:
+                df = df.drop(dep_sel[nk])
     
     return df
 
