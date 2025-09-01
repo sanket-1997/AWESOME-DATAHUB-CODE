@@ -56,4 +56,7 @@ models:
       - product_id
 
     dependencies:
-      - datahub_dev_gold.consumer.dim_suppliers.supplier_id_sk
+      - table: datahub_dev_gold.consumer.dim_suppliers
+        surrogateKey: supplier_id_sk
+        naturalKeys:
+          - supplier_id

@@ -140,7 +140,31 @@ def generate_join_condition(df1, df2, primary_keys):
         primary_keys[1:],                                  #iterate over remaining keys
         df1[primary_keys[0]] == df2[primary_keys[0]]       # initial value (first key)
     )
+
+
+#this function will be helpful for mapping and lookup functions and all. and would enable to have snowflake related activities
+def resolve_dependencies(df, dependencies: list):
+
+    for dep in dependencies:
+        full_table_name = dep["table"]
+        surrogate_key = dep["surrogateKey"]
+        natural_keys = dep["naturalKeys"]
+
+        dep_df = spark.table(full_table_name)
+        
+        join_cond = [df[natural_key] == dep_df[natural_key] for natural_key in natural_keys]
+        cond = join_cond[0]
+        for jc in join_cond[1:]:
+            cond = cond & jc
+
+        df = df.join(
+            dep_df.select(*natural_keys, surrogate_key),
+            on=cond,
+            how="left"
+                     
+            )
     
+    return df
 
 
 
