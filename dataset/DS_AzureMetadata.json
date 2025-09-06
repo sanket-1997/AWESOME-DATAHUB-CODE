@@ -1,0 +1,48 @@
+{
+	"name": "DS_AzureMetadata",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_AzureSQL",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Common"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "Id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "SourceSystem",
+				"type": "varchar"
+			},
+			{
+				"name": "EntityName",
+				"type": "varchar"
+			},
+			{
+				"name": "WatermarkValue",
+				"type": "datetime2",
+				"scale": 7
+			},
+			{
+				"name": "LastUpdatedOn",
+				"type": "datetime2",
+				"scale": 7
+			},
+			{
+				"name": "Source",
+				"type": "varchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "Metadata",
+			"table": "Watermark"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

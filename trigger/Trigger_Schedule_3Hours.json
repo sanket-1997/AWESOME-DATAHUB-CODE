@@ -1,0 +1,24 @@
+{
+	"name": "Trigger_Schedule_3Hours",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PL_Run_Every_3Hours",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 3,
+				"startTime": "2025-08-16T19:40:00",
+				"timeZone": "India Standard Time"
+			}
+		}
+	}
+}

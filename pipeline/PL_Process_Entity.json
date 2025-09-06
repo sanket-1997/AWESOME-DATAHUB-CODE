@@ -1,0 +1,252 @@
+{
+	"name": "PL_Process_Entity",
+	"properties": {
+		"activities": [
+			{
+				"name": "ListFiles",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "DS_SFTP_CSV_METADATA",
+						"type": "DatasetReference",
+						"parameters": {
+							"directory": {
+								"value": "@concat('/files/', pipeline().parameters.source, '/', pipeline().parameters.entity)",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "SftpReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false,
+						"disableChunking": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "Filter_New_Files",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "ListFiles",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('ListFiles').output.childItems",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@greater(\n    formatDateTime(\n        concat(\n            substring(split(item().name, '_')[1], 0, 4), '-',   \n            substring(split(item().name, '_')[1], 4, 2), '-',   \n            substring(split(item().name, '_')[1], 6, 2), 'T',   \n            substring(split(split(item().name, '_')[2], '.')[0], 0, 2), ':',  \n            substring(split(split(item().name, '_')[2], '.')[0], 2, 2), ':', \n            substring(split(split(item().name, '_')[2], '.')[0], 4, 2), 'Z'  \n        ),\n        'yyyy-MM-ddTHH:mm:ssZ'\n    ),\n    formatDateTime(pipeline().parameters.watermark, 'yyyy-MM-ddTHH:mm:ssZ')\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "ForEachSFTPFile",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Filter_New_Files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Filter_New_Files').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "CopyData",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "SftpReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false,
+										"disableChunking": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"logSettings": {
+									"enableCopyActivityLog": true,
+									"copyActivityLogSettings": {
+										"logLevel": "Warning",
+										"enableReliableLogging": false
+									},
+									"logLocationSettings": {
+										"linkedServiceName": {
+											"referenceName": "LS_AzureDataLake",
+											"type": "LinkedServiceReference"
+										},
+										"path": {
+											"value": "@concat('raw/log/',pipeline().parameters.source, '/', pipeline().parameters.entity,'_',pipeline().parameters.extract_timestamp,'_logs')",
+											"type": "Expression"
+										}
+									}
+								},
+								"dataIntegrationUnits": 256,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_SFTP_CSV",
+									"type": "DatasetReference",
+									"parameters": {
+										"directory": {
+											"value": "@concat('/files/', pipeline().parameters.source, '/', pipeline().parameters.entity)",
+											"type": "Expression"
+										},
+										"filename": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_DataLake_CSV",
+									"type": "DatasetReference",
+									"parameters": {
+										"directory": {
+											"value": "@concat('staging/',pipeline().parameters.source, '/',pipeline().parameters.entity,'/',pipeline().parameters.entity,'_',pipeline().parameters.extract_timestamp)",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "UpdateWatermark",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "CopyData",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[Metadata].[usp_UpdateWatermark]",
+								"storedProcedureParameters": {
+									"EntityName": {
+										"value": {
+											"value": "@pipeline().parameters.entity",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"NewWatermark": {
+										"value": {
+											"value": "@formatDateTime(\n        concat(\n            substring(split(item().name, '_')[1], 0, 4), '-',   \n            substring(split(item().name, '_')[1], 4, 2), '-',   \n            substring(split(item().name, '_')[1], 6, 2), 'T',   \n            substring(split(split(item().name, '_')[2], '.')[0], 0, 2), ':',  \n            substring(split(split(item().name, '_')[2], '.')[0], 2, 2), ':', \n            substring(split(split(item().name, '_')[2], '.')[0], 4, 2), 'Z'  \n        ),\n        'yyyy-MM-ddTHH:mm:ssZ'\n    )",
+											"type": "Expression"
+										},
+										"type": "DateTime"
+									},
+									"Source": {
+										"value": {
+											"value": "@pipeline().parameters.source",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "LS_AzureSQL",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"entity": {
+				"type": "string"
+			},
+			"watermark": {
+				"type": "string"
+			},
+			"source": {
+				"type": "string"
+			},
+			"extract_timestamp": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Consumer"
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-08-16T03:50:45Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
