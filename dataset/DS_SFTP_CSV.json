@@ -2,14 +2,11 @@
 	"name": "DS_SFTP_CSV",
 	"properties": {
 		"linkedServiceName": {
-			"referenceName": "LS_SFTP",
+			"referenceName": "LS_SFTP_Dev",
 			"type": "LinkedServiceReference"
 		},
 		"parameters": {
 			"directory": {
-				"type": "String"
-			},
-			"filename": {
 				"type": "String"
 			}
 		},
@@ -21,12 +18,8 @@
 		"typeProperties": {
 			"location": {
 				"type": "SftpLocation",
-				"fileName": {
-					"value": "@{dataset().filename}",
-					"type": "Expression"
-				},
 				"folderPath": {
-					"value": "@{dataset().directory}",
+					"value": "@dataset().directory",
 					"type": "Expression"
 				}
 			},
@@ -35,24 +28,7 @@
 			"firstRowAsHeader": true,
 			"quoteChar": "\""
 		},
-		"schema": [
-			{
-				"name": "supplier_id",
-				"type": "String"
-			},
-			{
-				"name": "name",
-				"type": "String"
-			},
-			{
-				"name": "phone",
-				"type": "String"
-			},
-			{
-				"name": "address",
-				"type": "String"
-			}
-		]
+		"schema": []
 	},
 	"type": "Microsoft.DataFactory/factories/datasets"
 }

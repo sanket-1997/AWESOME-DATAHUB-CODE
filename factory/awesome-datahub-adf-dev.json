@@ -1,0 +1,9 @@
+{
+	"name": "awesome-datahub-adf-dev",
+	"location": "centralindia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "621518a8-7537-4d5b-9e26-e669989feaa6",
+		"tenantId": "4f5332ea-32d9-4ce7-bb17-5e62325c4e4b"
+	}
+}
